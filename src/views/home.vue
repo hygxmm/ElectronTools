@@ -109,8 +109,6 @@ export default {
       .btn.active {
         background-color: #ff6530;
         color: #ffffff;
-        box-shadow: 0 0 5px #ff6530, 0 0 25px #ff6530, 0 0 50px #ff6530,
-          0 0 100px #ff6530;
       }
     }
   }

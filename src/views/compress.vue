@@ -16,10 +16,10 @@
         <div>
           <h3>文件类型</h3>
           <el-checkbox-group v-model="filters">
-            <el-checkbox label=".PNG"></el-checkbox>
-            <el-checkbox label=".JPG"></el-checkbox>
-            <el-checkbox label=".JPEG"></el-checkbox>
-            <el-checkbox label=".GIF"></el-checkbox>
+            <el-checkbox label=".png"></el-checkbox>
+            <el-checkbox label=".jpg"></el-checkbox>
+            <el-checkbox label=".jpeg"></el-checkbox>
+            <el-checkbox label=".gif"></el-checkbox>
           </el-checkbox-group>
         </div>
         <div>
@@ -42,7 +42,6 @@
             <el-checkbox class="mb-10" label="dist"></el-checkbox>
             <el-checkbox class="mb-10" label="nativeplugins"></el-checkbox>
             <el-checkbox class="mb-10" label="unpackage"></el-checkbox>
-            <el-checkbox class="mb-10" label="dist_electron"></el-checkbox>
           </el-checkbox-group>
         </div>
       </div>
@@ -55,56 +54,52 @@
         <el-button type="primary" size="mini" @click="compressAll">
           一键压缩
         </el-button>
+        <el-button type="text">
+          成功: {{ succCount }},失败: {{ failCount }}
+        </el-button>
       </div>
       <div class="table-container">
-        <div class="table-box">
-          <el-table
-            :data="images"
-            border
-            size="mini"
-            style="width: 100%;height: 100%;"
-          >
-            <el-table-column
-              label="序号"
-              align="center"
-              type="index"
-              width="50"
-            ></el-table-column>
-            <el-table-column label="图片路径" prop="filePath"></el-table-column>
-            <el-table-column label="压缩前大小" align="center" width="100">
-              <template slot-scope="scope">
-                <span>{{ scope.row.fileSize | formatSize }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="状态" align="center" width="120">
-              <template slot-scope="scope">
-                <span>{{ scope.row.status | formatStatus }}</span>
-              </template>
-            </el-table-column>
+        <el-table :data="images" border size="mini" height="100%">
+          <el-table-column
+            label="序号"
+            align="center"
+            type="index"
+            width="50"
+          ></el-table-column>
+          <el-table-column label="图片路径" prop="filePath"></el-table-column>
+          <el-table-column label="压缩前大小" align="center" width="100">
+            <template slot-scope="scope">
+              <span>{{ scope.row.fileSize | formatSize }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" align="center" width="120">
+            <template slot-scope="scope">
+              <span>{{ scope.row.status | formatStatus }}</span>
+            </template>
+          </el-table-column>
 
-            <el-table-column label="压缩后大小" align="center" width="100">
-              <template slot-scope="scope">
-                <span>{{ scope.row.cutSize | formatSize }}</span>
-              </template>
-            </el-table-column>
+          <el-table-column label="压缩后大小" align="center" width="100">
+            <template slot-scope="scope">
+              <span>{{ scope.row.cutSize | formatSize }}</span>
+            </template>
+          </el-table-column>
 
-            <el-table-column label="压缩比例" align="center" width="80">
-              <template slot-scope="scope">
-                <span>{{ scope.row.ratio || "" }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="120">
-              <template slot-scope="scope">
-                <el-button @click="compressImage(scope.row)" type="text">
-                  重新压缩
-                </el-button>
-                <el-button @click="compressImage(scope.row)" type="text">
-                  预览
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
+          <el-table-column label="压缩比例" align="center" width="80">
+            <template slot-scope="scope">
+              <span>{{ scope.row.ratio || "" }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120">
+            <template slot-scope="scope">
+              <el-button @click="compressImage(scope.row)" type="text">
+                重新压缩
+              </el-button>
+              <el-button @click="compressImage(scope.row)" type="text">
+                预览
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
     </div>
   </div>
@@ -117,6 +112,9 @@ const fs = window.require("fs");
 const https = window.require("https");
 const { URL } = window.require("url");
 import { iteratorDir } from "@/common/utils";
+import axios from "axios";
+import httpAdapter from "axios/lib/adapters/http";
+
 const options = {
   method: "POST",
   hostname: "tinypng.com",
@@ -133,12 +131,40 @@ const options = {
 export default {
   data() {
     return {
-      excludes: [".DS_Store", "dist", "node_modules", "dist_electron"],
-      filters: [".PNG", ".JPG", ".JPEG"],
-      limit: [20, 1000],
+      excludes: [
+        ".git",
+        ".DS_Store",
+        "dist",
+        "node_modules",
+        "nativeplugins",
+        "unpackage",
+      ],
+      filters: [".png", ".jpg", ".jpeg", ".gif"],
+      limit: [5, 1000],
       images: [],
       loading: false,
+      totalCount: 0,
+      succCount: 0,
+      failCount: 0,
     };
+  },
+  watch: {
+    succCount(val) {
+      if (val) {
+        if (val + this.failCount === this.totalCount) {
+          this.$message.success("文件处理完成");
+          this.loading = false;
+        }
+      }
+    },
+    failCount(val) {
+      if (val) {
+        if (val + this.succCount === this.totalCount) {
+          this.$message.success("文件处理完成");
+          this.loading = false;
+        }
+      }
+    },
   },
   filters: {
     formatSize(val) {
@@ -177,11 +203,16 @@ export default {
       if (!result) return;
       let dirPath = result[0];
       let filters = this.filters.map((item) => item.toLowerCase());
-      let files = iteratorDir(dirPath, { excludes: this.excludes, filters });
+      let files = iteratorDir(dirPath, {
+        excludes: this.excludes,
+        filters,
+        minSize: this.limit[0] * 1000,
+        maxSize: this.limit[1] * 1000,
+      });
       console.log("遍历出来的文件", files);
       this.renderImageList(files);
     },
-    //
+    // 处理图片列表
     renderImageList(list) {
       let newArray = list.map((item) => {
         item.cutSize = 0;
@@ -202,15 +233,15 @@ export default {
     // 清空数据
     handleClear() {
       if (this.loading) return this.$message.warning("正在压缩中,请稍后再试");
-      this.loading = true;
     },
     // 一键压缩
     compressAll() {
       if (this.images.length == 0) return this.$message.error("请先上传内容");
       if (this.loading) return this.$message.warning("正在压缩中,请稍后再试");
       this.loading = true;
-      this.images.forEach((image) => {
-        this.compressImage(image.filePath);
+      this.totalCount = this.images.length;
+      this.images.forEach(async (image) => {
+        await this.compressImage(image);
       });
     },
     // 压缩图片
@@ -218,69 +249,71 @@ export default {
       if (image.status === "loading") return;
       image.status = "loading";
       let filePath = image.filePath;
-      options.headers["X-Forwarded-For"] = this.getRandomIP();
-      let req = https.request(options, (res) => {
-        res.on("data", async (buf) => {
-          let result = JSON.parse(buf.toString());
-          if (result.error) {
-            image.status = "fail";
-            console.log("压缩失败: ", result.message);
-          } else {
-            this.downloadFile(filePath, result)
-              .then((res) => {
-                console.log("成功", res);
-                image.status = "success";
-                image.cutSize = res.output;
-                image.ratio = res.ratio;
-              })
-              .catch((err) => {
-                console.log("失败", err);
-                image.status = "fail";
-              });
-          }
-        });
+      return new Promise((resolve, reject) => {
+        axios
+          .post("https://tinypng.com/web/shrink", fs.readFileSync(filePath), {
+            headers: {
+              "Postman-Token": Date.now(),
+              "Cache-Control": "no-cache",
+              "Content-Type": "application/x-www-form-urlencoded",
+              "User-Agent":
+                "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",
+            },
+            adapter: httpAdapter,
+          })
+          .then(async (res) => {
+            console.log("上传图片成功回调", res);
+            const data = res.data;
+            if (data.error) {
+              // 失败日志
+            } else {
+              await this.downloadFile(filePath, data);
+            }
+            resolve();
+          })
+          .catch((err) => {
+            console.log("上传图片失败回调", err);
+            // 失败日志
+            resolve();
+          });
       });
-      req.write(fs.readFileSync(filePath), "binary");
-      req.on("error", (e) => {
-        console.warn("ERROR", e);
-        image.status = "fail";
-      });
-      req.end();
     },
     // 下载图片
     downloadFile(filePath, result) {
       return new Promise((resolve, reject) => {
-        let options = new URL(result.output.url);
-        let req = https.request(options, (res) => {
-          let body = "";
-          res.setEncoding("binary");
-          res.on("data", (data) => {
-            body += data;
-          });
-          res.on("end", () => {
-            let pathArr = filePath.split("/");
-            let newName = pathArr[pathArr.length - 1].split(".");
-            pathArr[pathArr.length - 1] =
-              newName[0] + "_compress." + newName[1];
-            let newFilePath = pathArr.join("/");
-
-            fs.writeFile(newFilePath, body, "binary", (err) => {
+        axios
+          .get(result.output.url, {
+            responseType: "arraybuffer",
+          })
+          .then((res) => {
+            console.log("下载图片成功回调", res);
+            fs.writeFile(filePath, res.data, "binary", (err) => {
               if (err) {
+                console.error("写入图片失败", err);
                 reject(err);
               }
-              resolve({
-                output: result.output.size,
-                ratio: Math.ceil((1 - result.output.ratio) * 100) + "%",
-                filePath,
-              });
+              // this.compressCallback({
+              //   output: result.output.size,
+              //   ratio: Math.ceil((1 - result.output.ratio) * 100) + "%",
+              //   filePath,
+              // });
+              resolve();
             });
+          })
+          .catch((err) => {
+            console.log("下载图片失败回调", err);
+            reject(err);
           });
-        });
-        req.on("error", (e) => {
-          console.log("download file error", e);
-        });
-        req.end();
       });
+    },
+    // 压缩回调
+    compressCallback(obj) {
+      console.log("图片写入成功", obj);
+      const image = this.images.find((ele) => ele.filePath === obj.filePath);
+      this.$set(image, "status", "success");
+      this.$set(image, "cutSize", obj.output);
+      this.$set(image, "ratio", obj.ratio);
+      this.succCount += 1;
     },
     // 随机IP地址
     getRandomIP() {
@@ -304,16 +337,22 @@ export default {
   }
   .right {
     flex: 1;
-    position: relative;
+    display: flex;
+    flex-direction: column;
     .table-container {
-      width: 100%;
-      height: calc(100% - 38px);
+      flex: 1;
       position: relative;
-      .table-box {
+      .el-table {
         position: absolute;
         width: 100%;
-        height: 100%;
       }
+      // height: calc(100% - 38px);
+      // position: relative;
+      // .table-box {
+      //   width: 100%;
+      //   height: 100%;
+      //   position: absolute;
+      // }
     }
   }
 }

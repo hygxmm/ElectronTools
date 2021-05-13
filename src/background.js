@@ -3,7 +3,7 @@
 import { app, protocol, BrowserWindow } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 const isDevelopment = process.env.NODE_ENV !== "production";
-import { autoUpdater } from "electron-updater";
+// import { autoUpdater } from "electron-updater";
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
@@ -28,7 +28,7 @@ async function createWindow() {
   } else {
     createProtocol("app");
     win.loadURL("app://./index.html");
-    autoUpdater.checkForUpdatesAndNotify();
+    // autoUpdater.checkForUpdatesAndNotify();
   }
 }
 
