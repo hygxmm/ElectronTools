@@ -1,9 +1,12 @@
 "use strict";
 
-import { app, protocol, BrowserWindow } from "electron";
+import { app, protocol, BrowserWindow, ipcMain } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
+const fs = require("fs");
 const isDevelopment = process.env.NODE_ENV !== "production";
 // import { autoUpdater } from "electron-updater";
+import axios from "axios";
+import httpAdapter from "axios/lib/adapters/http";
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
@@ -62,3 +65,50 @@ if (isDevelopment) {
     });
   }
 }
+
+ipcMain.handle("compress-image", async (event, filePath) => {
+  const result = await axios.post(
+    "https://tinypng.com/web/shrink",
+    fs.readFileSync(filePath),
+    {
+      headers: {
+        "Postman-Token": Date.now(),
+        "Cache-Control": "no-cache",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",
+        "X-Forwarded-For": Array.from(Array(4))
+          .map(() => parseInt(Math.random() * 255))
+          .join("."),
+      },
+      adapter: httpAdapter,
+    }
+  );
+  if (result.status !== 201) {
+    return {
+      status: 1,
+      filePath,
+      msg: "压缩图片失败",
+    };
+    return;
+  }
+  const result2 = await axios.get(result.data.output.url, {
+    responseType: "stream",
+  });
+  if (result2.status !== 200) {
+    return {
+      status: 1,
+      filePath,
+      msg: "下载图片失败",
+    };
+    return;
+  }
+  result2.data.pipe(fs.createWriteStream(filePath));
+  return {
+    status: 0,
+    filePath,
+    cutSize: result.data.output.size,
+    ratio: Math.ceil((1 - result.data.output.ratio) * 100) + "%",
+    msg: "压缩成功",
+  };
+});

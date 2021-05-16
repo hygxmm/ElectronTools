@@ -19,7 +19,6 @@
             <el-checkbox label=".png"></el-checkbox>
             <el-checkbox label=".jpg"></el-checkbox>
             <el-checkbox label=".jpeg"></el-checkbox>
-            <el-checkbox label=".gif"></el-checkbox>
           </el-checkbox-group>
         </div>
         <div>
@@ -48,7 +47,12 @@
     </div>
     <div class="right">
       <div class="mb-10">
-        <el-button type="info" size="mini" @click="handleClear">
+        <el-button
+          type="info"
+          size="mini"
+          @click="handleClear"
+          @dblclick="forceClear"
+        >
           清空数据
         </el-button>
         <el-button type="primary" size="mini" @click="compressAll">
@@ -106,6 +110,7 @@
 </template>
 
 <script>
+const { ipcRenderer } = window.require("electron");
 const { dialog } = window.require("electron").remote;
 const path = window.require("path");
 const fs = window.require("fs");
@@ -120,7 +125,7 @@ const options = {
   hostname: "tinypng.com",
   path: "/web/shrink",
   headers: {
-    rejectUnauthorized: false,
+    // rejectUnauthorized: false,
     "Postman-Token": Date.now(),
     "Cache-Control": "no-cache",
     "Content-Type": "application/x-www-form-urlencoded",
@@ -139,7 +144,7 @@ export default {
         "nativeplugins",
         "unpackage",
       ],
-      filters: [".png", ".jpg", ".jpeg", ".gif"],
+      filters: [".png", ".jpg", ".jpeg"],
       limit: [5, 1000],
       images: [],
       loading: false,
@@ -233,6 +238,18 @@ export default {
     // 清空数据
     handleClear() {
       if (this.loading) return this.$message.warning("正在压缩中,请稍后再试");
+      this.images = [];
+      this.totalCount = 0;
+      this.succCount = 0;
+      this.failCount = 0;
+    },
+    // 强制清空
+    forceClear() {
+      console.log("强制清空");
+      this.images = [];
+      this.totalCount = 0;
+      this.succCount = 0;
+      this.failCount = 0;
     },
     // 一键压缩
     compressAll() {
@@ -240,8 +257,8 @@ export default {
       if (this.loading) return this.$message.warning("正在压缩中,请稍后再试");
       this.loading = true;
       this.totalCount = this.images.length;
-      this.images.forEach(async (image) => {
-        await this.compressImage(image);
+      this.images.forEach((image) => {
+        this.compressImage(image);
       });
     },
     // 压缩图片
@@ -249,71 +266,20 @@ export default {
       if (image.status === "loading") return;
       image.status = "loading";
       let filePath = image.filePath;
-      return new Promise((resolve, reject) => {
-        axios
-          .post("https://tinypng.com/web/shrink", fs.readFileSync(filePath), {
-            headers: {
-              "Postman-Token": Date.now(),
-              "Cache-Control": "no-cache",
-              "Content-Type": "application/x-www-form-urlencoded",
-              "User-Agent":
-                "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",
-            },
-            adapter: httpAdapter,
-          })
-          .then(async (res) => {
-            console.log("上传图片成功回调", res);
-            const data = res.data;
-            if (data.error) {
-              // 失败日志
-            } else {
-              await this.downloadFile(filePath, data);
-            }
-            resolve();
-          })
-          .catch((err) => {
-            console.log("上传图片失败回调", err);
-            // 失败日志
-            resolve();
-          });
+      ipcRenderer.invoke("compress-image", filePath).then((res) => {
+        if (res.status === 0) {
+          // console.log(filePath, "成功");
+          image.status = "success";
+          image.cutSize = res.cutSize;
+          image.ratio = res.ratio;
+          this.succCount += 1;
+          this.$forceUpdate();
+          console.log(filePath, "成功" + this.succCount);
+        } else {
+          image.status = "fail";
+          this.failCount += 1;
+        }
       });
-    },
-    // 下载图片
-    downloadFile(filePath, result) {
-      return new Promise((resolve, reject) => {
-        axios
-          .get(result.output.url, {
-            responseType: "arraybuffer",
-          })
-          .then((res) => {
-            console.log("下载图片成功回调", res);
-            fs.writeFile(filePath, res.data, "binary", (err) => {
-              if (err) {
-                console.error("写入图片失败", err);
-                reject(err);
-              }
-              // this.compressCallback({
-              //   output: result.output.size,
-              //   ratio: Math.ceil((1 - result.output.ratio) * 100) + "%",
-              //   filePath,
-              // });
-              resolve();
-            });
-          })
-          .catch((err) => {
-            console.log("下载图片失败回调", err);
-            reject(err);
-          });
-      });
-    },
-    // 压缩回调
-    compressCallback(obj) {
-      console.log("图片写入成功", obj);
-      const image = this.images.find((ele) => ele.filePath === obj.filePath);
-      this.$set(image, "status", "success");
-      this.$set(image, "cutSize", obj.output);
-      this.$set(image, "ratio", obj.ratio);
-      this.succCount += 1;
     },
     // 随机IP地址
     getRandomIP() {
