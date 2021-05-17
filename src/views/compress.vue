@@ -120,19 +120,6 @@ import { iteratorDir } from "@/common/utils";
 import axios from "axios";
 import httpAdapter from "axios/lib/adapters/http";
 
-const options = {
-  method: "POST",
-  hostname: "tinypng.com",
-  path: "/web/shrink",
-  headers: {
-    // rejectUnauthorized: false,
-    "Postman-Token": Date.now(),
-    "Cache-Control": "no-cache",
-    "Content-Type": "application/x-www-form-urlencoded",
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",
-  },
-};
 export default {
   data() {
     return {
@@ -197,8 +184,35 @@ export default {
   },
   methods: {
     handleDrop(e) {
-      const files = e.dataTransfer.files;
-      console.log(files);
+      let dirs = e.dataTransfer.files;
+      const files = Array.from(dirs).reduce((fileArr, file) => {
+        let fileStat = fs.statSync(file.path);
+        if (fileStat.isDirectory()) {
+          let _files = iteratorDir(file.path, {
+            excludes: this.excludes,
+            filters: this.filters,
+            minSize: this.limit[0] * 1000,
+            maxSize: this.limit[1] * 1000,
+          });
+          fileArr.push(..._files);
+        } else {
+          let extname = path.extname(file.path);
+          if (this.filters && !this.filters.includes(extname)) return fileArr;
+          // 如果有文件大小限制,并且当前文件不在最小限制范围内
+          if (this.limit[0] && fileStat.size < this.limit[0] * 1000)
+            return fileArr;
+          // 如果有文件大小限制,并且当前文件不在最大限制范围内
+          if (this.limit[1] && fileStat.size > this.limit[1] * 1000)
+            return fileArr;
+          fileArr.push({
+            filename: file.name,
+            filePath: file.path,
+            fileSize: fileStat.size,
+          });
+        }
+        return fileArr;
+      }, []);
+      this.renderImageList(files);
     },
     handleClick() {
       const result = dialog.showOpenDialogSync({

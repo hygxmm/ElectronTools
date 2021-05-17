@@ -11,10 +11,6 @@ const fs = window.require("fs");
 export function iteratorDir(dirPath, options = {}) {
   let fileArray = [];
   const { filters, minSize, maxSize, excludes } = options;
-  console.log("filters", filters);
-  console.log("minSize", minSize);
-  console.log("maxSize", maxSize);
-  console.log("excludes", excludes);
   function iterator(dirPath) {
     const files = fs.readdirSync(dirPath);
     // console.log(files);
