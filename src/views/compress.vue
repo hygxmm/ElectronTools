@@ -114,11 +114,7 @@ const { ipcRenderer } = window.require("electron");
 const { dialog } = window.require("electron").remote;
 const path = window.require("path");
 const fs = window.require("fs");
-const https = window.require("https");
-const { URL } = window.require("url");
 import { iteratorDir } from "@/common/utils";
-import axios from "axios";
-import httpAdapter from "axios/lib/adapters/http";
 
 export default {
   data() {
