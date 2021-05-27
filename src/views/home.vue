@@ -29,7 +29,7 @@ export default {
     return {
       menus: [
         { title: "压缩图片", path: "/compress" },
-        { title: "diff文件", path: "/diff" },
+        // { title: "diff文件", path: "/diff" },
         // { title: "测试功能", path: "/" },
       ],
       curTab: 0,
