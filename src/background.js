@@ -4,7 +4,7 @@ import { app, protocol, BrowserWindow, ipcMain } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 const fs = require("fs");
 const isDevelopment = process.env.NODE_ENV !== "production";
-// import { autoUpdater } from "electron-updater";
+import { autoUpdater } from "electron-updater";
 import axios from "axios";
 import httpAdapter from "axios/lib/adapters/http";
 
@@ -31,7 +31,7 @@ async function createWindow() {
   } else {
     createProtocol("app");
     win.loadURL("app://./index.html");
-    // autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.checkForUpdatesAndNotify();
   }
 }
 

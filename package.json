@@ -13,6 +13,7 @@
     "postuninstall": "electron-builder install-app-deps"
   },
   "main": "background.js",
+  "repository": "https://github.com/hygxmm/ElectronTools.git",
   "dependencies": {
     "axios": "^0.21.1",
     "core-js": "^3.6.5",

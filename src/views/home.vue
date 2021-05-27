@@ -5,7 +5,7 @@
         class="item"
         v-for="(item, index) in menus"
         :key="index"
-        @click="handleClick(index)"
+        @click="handleClick(index, item.path)"
       >
         <div class="btn" :class="{ active: curTab == index }">
           <div class="line"></div>
@@ -28,16 +28,17 @@ export default {
   data() {
     return {
       menus: [
-        { title: "压缩图片" },
-        { title: "测试功能" },
-        { title: "测试功能" },
+        { title: "压缩图片", path: "/compress" },
+        { title: "diff文件", path: "/diff" },
+        // { title: "测试功能", path: "/" },
       ],
       curTab: 0,
     };
   },
   methods: {
-    handleClick(index) {
+    handleClick(index, path) {
       this.curTab = index;
+      this.$router.push({ path });
     },
   },
 };

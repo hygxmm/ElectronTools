@@ -1,38 +1,43 @@
-import Vue from 'vue'
-import VueRouter from 'vue-router'
+import Vue from "vue";
+import VueRouter from "vue-router";
 
-Vue.use(VueRouter)
+Vue.use(VueRouter);
 
 const routes = [
   {
-    path: '/',
-    component: () => import('@/views/home.vue'),
-    redirect: '/compress',
+    path: "/",
+    component: () => import("@/views/home.vue"),
+    redirect: "/compress",
     children: [
       {
-        path: 'compress',
-        name: 'Compress',
-        component: () => import('@/views/compress.vue'),
-      }
-    ]
+        path: "compress",
+        name: "Compress",
+        component: () => import("@/views/compress.vue"),
+      },
+      {
+        path: "diff",
+        name: "Diff",
+        component: () => import("@/views/diff.vue"),
+      },
+    ],
   },
   {
-    path: '/login',
-    name: 'Login',
-    component: () => import('@/views/login.vue')
+    path: "/login",
+    name: "Login",
+    component: () => import("@/views/login.vue"),
   },
   {
-    path: '/404',
-    component: () => import('@/views/404.vue')
+    path: "/404",
+    component: () => import("@/views/404.vue"),
   },
   {
-    path: '*',
-    redirect: '/404',
-  }
-]
+    path: "*",
+    redirect: "/404",
+  },
+];
 
 const router = new VueRouter({
-  routes
-})
+  routes,
+});
 
-export default router
+export default router;
