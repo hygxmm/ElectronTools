@@ -26,8 +26,8 @@
           <el-slider
             v-model="limit"
             range
-            :min="5"
-            :max="2000"
+            :min="10"
+            :max="10000"
             :format-tooltip="formatTooltip"
           >
           </el-slider>
