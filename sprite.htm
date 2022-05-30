@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>精灵图工具</title>
+    <style>
+        *{
+            box-sizing: border-box;
+        }
+        html,
+        body{
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        h1{
+            text-align: center;
+            margin: 0;
+            padding: 15px 0;
+        }
+        .container{
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <h1>精灵图工具</h1>
+    <div>
+        <div>
+            <input class="input" type="file" />
+        </div>
+        <div class="container">
+            <canvas id="canvas"></canvas>
+            <canvas id="canvas2"></canvas>
+        </div>
+    </div>
+    <script>
+        let sprite = 32;
+        const canvas = document.querySelector('#canvas');
+        const canvas2 = document.querySelector('#canvas2');
+        const ctx2 = canvas2.getContext("2d");
+        const currents = []; 
+        let image = null;
+        const ratio = window.devicePixelRatio || 1;
+
+        document.querySelector('.input').addEventListener('change',(e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = e.target.result;
+                image = new Image();
+                image.src = img;
+                image.onload = () => {
+                    const w = image.naturalWidth;
+                    const h = image.naturalHeight;
+                    console.log(`ratio: ${ratio}, width: ${w},height: ${h}`)
+                    const c = document.querySelector("#canvas");
+                    c.width = w*ratio;
+                    c.height = h*ratio;
+                    c.style.width = w+'px';
+                    c.style.height = h+'px';
+                    setTimeout(() => {
+                        const ctx = c.getContext("2d");
+                        ctx.drawImage(image,0,0,w*ratio,h*ratio); 
+                    },300)
+                }
+            }
+        })
+        document.querySelector('#canvas').addEventListener('click',(e) => {
+            const x = e.offsetX;
+            const y = e.offsetY;
+            console.log(`x: ${x},y: ${y}`);
+            const index = Math.floor(y/sprite);
+            console.log(`index: ${index}`)
+            ctx2.drawImage(image,0,index*sprite,sprite*ratio,(index+1)*sprite*ratio);
+
+
+        })
+        
+    </script>
+</body>
+</html>
